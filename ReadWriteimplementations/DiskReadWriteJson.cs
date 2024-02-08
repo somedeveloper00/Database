@@ -6,7 +6,8 @@ namespace Database.ReadWriteimplementations;
 /// <summary>
 /// A <see cref="IReadWriteMethod{T}"/> that writes to and reads from disk using JSON.
 /// </summary>
-public sealed class DiskReadWriteJson<T>(string rootPath, Encoding encoding, IJsonSerializer jsonSerializer) : DiskReadWriteBase<T>(rootPath)
+public sealed class DiskReadWriteJson<T>(string rootPath, Encoding encoding, IJsonSerializer jsonSerializer)
+    : DiskReadWriteBase<T>(rootPath) where T : new()
 {
     private readonly Encoding encoding = encoding;
     private readonly IJsonSerializer jsonSerializer = jsonSerializer;

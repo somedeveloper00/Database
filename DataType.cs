@@ -45,7 +45,7 @@ public sealed class DataType<T>(string path, IReadWriteMethod<T> readWriteMethod
     /// Gets the items at the given range, asynchronously. <paramref name="startIndex"/> is inclusive, 
     /// <paramref name="endIndex"/> is exclusive.
     /// </summary>
-    public async Task<T[]> GetItemsAt(int startIndex, int endIndex)
+    public async Task<T[]> GetRage(int startIndex, int endIndex)
     {
         T[] result = new T[endIndex - startIndex];
         List<int> toReadIndexes = null;
