@@ -3,7 +3,7 @@ namespace Database.Common;
 /// <summary>
 /// A serializer that can serialize and deserialize objects to and from bytes.
 /// </summary>
-public interface IBinarySerializer<T>
+public interface IBinarySerializer<T> where T : new()
 {
     /// <summary>
     /// Serializes the given value to bytes. Should keep in mind that the deserialization 

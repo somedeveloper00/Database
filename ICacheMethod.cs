@@ -19,4 +19,14 @@ public interface ICacheMethod<T>
     /// Caches the range of values.
     /// </summary>
     void CachedRange(int start, int end, IList<T> values);
+
+    /// <summary>
+    /// Removes cached element at the specified index.
+    /// </summary>
+    void RemoveCacheAt(int index);
+
+    /// <summary>
+    /// Removes cached elements at the specified range.
+    /// </summary>
+    void RemoveCacheRange(int startIndex, int count);
 }

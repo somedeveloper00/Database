@@ -75,9 +75,11 @@ public sealed class MemoryCache<T>(IList<T> cache, MemoryCache<T>.EnlargeCache e
     /// </summary>
     public static MemoryCache<T> CreateList(int size)
     {
-        return new MemoryCache<T>(new List<T>(size), (oldCache, newSize) =>
+        // fill the list with default values
+        var list = Enumerable.Repeat(default(T)!, size).ToList()!;
+        return new MemoryCache<T>(list, (oldCache, newSize) =>
         {
-            ((List<T>)oldCache).Capacity = size;
+            oldCache.Insert(newSize - 1, default!);
             return oldCache;
         });
     }

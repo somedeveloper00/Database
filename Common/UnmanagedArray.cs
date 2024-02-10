@@ -21,6 +21,7 @@ namespace Database.Common;
 [InlineArray(32768)] public struct UnmanagedArray_32768<T> where T : unmanaged { private T value; }
 [InlineArray(65536)] public struct UnmanagedArray_65536<T> where T : unmanaged { private T value; }
 [InlineArray(131072)] public struct UnmanagedArray_131072<T> where T : unmanaged { private T value; }
+[InlineArray(1048576)] public struct UnmanagedArray_1048576<T> where T : unmanaged { private T value; }
 
 #pragma warning restore IDE0044 // Add readonly modifier
 #pragma warning restore IDE0051 // Remove unused private members

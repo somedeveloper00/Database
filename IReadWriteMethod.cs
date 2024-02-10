@@ -6,34 +6,48 @@
 public interface IReadWriteMethod<T>
 {
     /// <summary>
-    /// Optimizes for writing.
+    /// Starts writing process.
     /// </summary>
-    Task BeginWrite(string filePath);
+    Task BeginWrite(string path);
 
     /// <summary>
-    /// Ends the write optimization.
-    /// </summary>
-    Task EndWrite();
-
-    /// <summary>
-    /// Writes the value at the specified index. The results may not be immediately saved, 
-    /// for that you should call <see cref="EndWrite(string)"/>.
+    /// Marks the element at the specified index for writing.
     /// </summary>
     Task Write(T value, int index);
 
     /// <summary>
-    /// Optimizes for reading.
+    /// Writes all elements marked for writing.
     /// </summary>
-    Task BeginRead(string filePath);
+    Task EndWrite();
 
     /// <summary>
-    /// Ends the read optimization.
+    /// Starts reading process.
+    /// </summary>
+    Task BeginRead(string path);
+
+    /// <summary>
+    /// Marks the element at the specified index for read.
+    /// </summary>
+    Task Read(int index);
+
+    /// <summary>
+    /// Reads all elements marked for reading.
     /// </summary>
     Task<T[]> EndRead();
 
     /// <summary>
-    /// Reads the value at the specified index. Saves the result locally. You can fetch the results by calling 
-    /// <see cref="EndRead"/>
+    /// Starts deletion process.
     /// </summary>
-    Task Read(int index);
+    Task BeginDelete(string path);
+
+    /// <summary>
+    /// Marks the element at the spciefied index for deletion.
+    /// </summary>
+    Task Delete(int index);
+
+    /// <summary>
+    /// Deletes all elements marked for deletion.
+    /// </summary>
+    /// <returns></returns>
+    Task EndDelete();
 }
