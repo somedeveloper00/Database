@@ -13,12 +13,12 @@ public interface ICacheMethod<T>
     /// <summary>
     /// Gets the cached value at the specified index.
     /// </summary>
-    void SetCached(int index, T value);
+    void SetCacheAt(int index, T value);
 
     /// <summary>
     /// Caches the range of values.
     /// </summary>
-    void CachedRange(int start, int end, IList<T> values);
+    void SetCacheRange(IList<T> values, int start, int count);
 
     /// <summary>
     /// Removes cached element at the specified index.

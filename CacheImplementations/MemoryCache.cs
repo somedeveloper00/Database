@@ -3,84 +3,71 @@
 /// <summary>
 /// Saves the cached data in memory, managed and by a collection type of your choice. 
 /// </summary>
-public sealed class MemoryCache<T>(IList<T> cache, MemoryCache<T>.EnlargeCache enlargeCache) : ICacheMethod<T>
+public sealed class MemoryCache<T>(int capacity) : ICacheMethod<T>
 {
-    /// <summary>
-    /// Represents a method that enlarges the cache.
-    /// </summary>
-    public delegate IList<T> EnlargeCache(IList<T> oldCache, int size);
-
     /// <summary>
     /// The currenct cache in use.
     /// </summary>
-    public IList<T> cache = cache;
+    public List<Slot> cache = new(capacity);
 
-    /// <summary>
-    /// The method for enlarging the cache.
-    /// </summary>
-    public readonly MemoryCache<T>.EnlargeCache enlargeCache = enlargeCache;
-
-    public void CachedRange(int start, int end, IList<T> values)
+    public void SetCacheRange(IList<T> values, int start, int count)
     {
-        EnsureSize(end);
-        for (int i = start; i < end; i++)
+        EnsureIndexExists(start + count - 1);
+        for (int i = 0; i < count; i++)
         {
-            cache[i] = values[i - start];
+            cache[i + start] = NewSlot(values[i]);
         }
     }
 
-    public void SetCached(int index, T value)
+    public void SetCacheAt(int index, T value)
     {
-        EnsureSize(index);
-        cache[index] = value;
+        EnsureIndexExists(index);
+        cache[index] = NewSlot(value);
     }
 
     public bool TryGetCached(int index, out T value)
     {
         if (index < cache.Count)
         {
-            value = cache[index];
-            return true;
+            value = cache[index].value;
+            return !cache[index].empty;
         }
         value = default!;
         return false;
     }
 
-    private void EnsureSize(int end)
+    public void RemoveCacheAt(int index)
     {
-        if (cache.Count < end)
+        if (index < cache.Count)
         {
-            cache = enlargeCache(cache, end);
+            cache[index] = EmptySlot;
         }
     }
 
-    /// <summary>
-    /// Quickly create a new <see cref="MemoryCache{T}"/> with <see cref="Array"/> as its cache collection type.
-    /// </summary>
-    public static MemoryCache<T> CreateArray(int size)
+    public void RemoveCacheRange(int startIndex, int count)
     {
-        return new MemoryCache<T>(new T[size], (oldCache, newSize) =>
+        int maxIndex = Math.Min(startIndex + count, cache.Count);
+        for (int i = startIndex; i < maxIndex; i++)
         {
-            T[] newCache = new T[newSize];
-            for (int i = 0; i < oldCache.Count; i++)
-            {
-                newCache[i] = oldCache[i];
-            }
-            return newCache;
-        });
+            cache[i] = EmptySlot;
+        }
     }
 
-    /// <summary>
-    /// Quickly create a new <see cref="MemoryCache{T}"/> with <see cref="List{T}"/> as its cache collection type.
-    /// </summary>
-    public static MemoryCache<T> CreateList(int size)
+    private void EnsureIndexExists(int end)
     {
-        // fill the list with default values
-        var list = Enumerable.Repeat(default(T)!, size).ToList()!;
-        return new MemoryCache<T>(list, (oldCache, newSize) =>
+        while (cache.Count <= end)
         {
-            oldCache.Insert(newSize - 1, default!);
-            return oldCache;
-        });
+            cache.Add(EmptySlot);
+        }
+    }
+
+    private static readonly Slot EmptySlot = new(true, default!);
+
+    private static Slot NewSlot(T value) => new(false, value);
+
+    public readonly struct Slot(bool empty, T value)
+    {
+        public readonly bool empty = empty;
+        public readonly T value = value;
     }
 }

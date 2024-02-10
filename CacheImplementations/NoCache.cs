@@ -6,17 +6,19 @@ namespace Database.CacheImplementations;
 /// </summary>
 public sealed class NoCache<T> : ICacheMethod<T>
 {
-    public void CachedRange(int start, int end, IList<T> values) { }
-    public void SetCached(int index, T value) { }
+    public void SetCachedRange(int start, int end, IList<T> values) { }
+
+    public void SetCacheAt(int index, T value) { }
+
     public bool TryGetCached(int index, out T value)
     {
         value = default!;
         return false;
     }
 
-    /// <summary>
-    /// An instance of <see cref="NoCache{T}"/>, to avoid extra heap allocation, since it doesn't 
-    /// do anything, it doesn't need sepaarte instances and is thread-safe.
-    /// </summary>
-    public static NoCache<T> Instance { get; } = new();
+    public void SetCacheRange(IList<T> values, int start, int count) { }
+
+    public void RemoveCacheAt(int index) { }
+
+    public void RemoveCacheRange(int startIndex, int count) { }
 }

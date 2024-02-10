@@ -1,4 +1,6 @@
-﻿namespace Database;
+﻿using Database.Common;
+
+namespace Database;
 
 /// <summary>
 /// Represents the database for a specific type of data at a specific path. It uses interfaces so 
@@ -32,7 +34,7 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
             await readWriteMethod.BeginRead(path);
             await readWriteMethod.Read(index);
             result = (await readWriteMethod.EndRead())[0];
-            cacheMethod.SetCached(index, result);
+            cacheMethod.SetCacheAt(index, result);
         }
         return result;
     }
@@ -44,16 +46,19 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
     public async Task<T[]> GetRage(int startIndex, int count)
     {
         T[] result = new T[count];
+        List<int> toReadIndexes = new(count / 2);
         bool startedReading = false;
         for (int i = 0; i < count; i++)
         {
             int index = startIndex + i;
-            if (cacheMethod.TryGetCached(index, out var value))
+            bool foundCache = cacheMethod.TryGetCached(index, out var value);
+
+            if (foundCache)
             {
                 result[i] = value;
             }
-
-            if (result[i] == null)
+            
+            if (!foundCache || result[i] == null)
             {
                 if (!startedReading)
                 {
@@ -61,6 +66,7 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
                     await readWriteMethod.BeginRead(path);
                 }
                 await readWriteMethod.Read(index);
+                toReadIndexes.Add(i);
             }
         }
 
@@ -68,10 +74,9 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
         if (startedReading)
         {
             var readElements = await readWriteMethod.EndRead();
-            int index = 0;
-            for (int i = 0; i < result.Length; i++)
+            for (int i = 0; i < toReadIndexes.Count; i++)
             {
-                result[i] ??= readElements[index++];
+                result[toReadIndexes[i]] = readElements[i];
             }
         }
 
@@ -86,7 +91,7 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
         await readWriteMethod.BeginWrite(path);
         await readWriteMethod.Write(value, index);
         await readWriteMethod.EndWrite();
-        cacheMethod.SetCached(index, value);
+        cacheMethod.SetCacheAt(index, value);
     }
 
     /// <summary>
@@ -125,7 +130,7 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
         {
             int dbIndex = i + startIndex;
             await readWriteMethod.Write(values[i], dbIndex);
-            cacheMethod.SetCached(dbIndex, values[i]);
+            cacheMethod.SetCacheAt(dbIndex, values[i]);
         }
         await readWriteMethod.EndWrite();
     }

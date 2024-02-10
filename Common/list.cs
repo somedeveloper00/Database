@@ -1,3 +1,7 @@
+#pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
+#pragma warning disable IDE1006 // Naming Styles
+#pragma warning disable CS9081 // A result of a stackalloc expression of this type in this context may be exposed outside of the containing method
+
 using System.Runtime.CompilerServices;
 
 namespace Database.Common;
@@ -5,17 +9,10 @@ namespace Database.Common;
 /// <summary>
 /// A list implementation inside stack.
 /// </summary>
-public unsafe ref struct list<T> where T : unmanaged
+public unsafe ref struct list<T>(int capacity) where T : unmanaged
 {
-    private Span<T> _values;
+    private Span<T> _values = stackalloc T[capacity];
     private int _length;
-
-    public list(int capacity)
-    {
-#pragma warning disable CS9081 // A result of a stackalloc expression of this type in this context may be exposed outside of the containing method
-        _values = stackalloc T[capacity];
-#pragma warning restore CS9081 // A result of a stackalloc expression of this type in this context may be exposed outside of the containing method
-    }
 
     public T this[int index]
     {
@@ -24,8 +21,6 @@ public unsafe ref struct list<T> where T : unmanaged
     }
 
     public readonly int Count => _length;
-
-    public bool IsReadOnly => throw new NotImplementedException();
 
     /// <summary>
     /// Adds the new element at the last position of the list
@@ -145,9 +140,7 @@ public unsafe ref struct list<T> where T : unmanaged
     private void ChangeCapacity(int newCapacity)
     {
         var old = _values;
-#pragma warning disable CS9081 // A result of a stackalloc expression of this type in this context may be exposed outside of the containing method
         _values = stackalloc T[newCapacity];
-#pragma warning restore CS9081 // A result of a stackalloc expression of this type in this context may be exposed outside of the containing method
         old.CopyTo(_values);
     }
 

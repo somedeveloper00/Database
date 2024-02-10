@@ -1,6 +1,5 @@
 ﻿using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Database.Common;
 using Database.Common.BinarySerializationImplementations;
 
@@ -25,7 +24,10 @@ namespace Database.ReadWriteimplementations;
 ///     </list>
 /// </para>
 /// </summary>
-public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
+public sealed class DiskReadWriteBinary<T>(string rootPath, IBinarySerializer<T> binarySerializer)
+    : DiskReadWriteBase<T>(rootPath,
+        FileMode.OpenOrCreate, FileMode.OpenOrCreate, FileMode.OpenOrCreate,
+        FileAccess.Read, FileAccess.ReadWrite, FileAccess.ReadWrite)
     where T : unmanaged
 {
     /// <summary>
@@ -34,140 +36,137 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
     public static readonly byte[] FileMark = [0x00, 0x11, 0x22, 0x33, 0x33, 0x22, 0x11, 0x00];
 
     /// <summary>
-    /// buffer used for reading and writing.
-    /// </summary>
-    private byte[] _buffer;
-
-    /// <summary>
     /// The serializer used for serializing and deserializing the elements to and from disk.
     /// </summary>
-    private readonly IBinarySerializer<T> binarySerializer;
+    private readonly IBinarySerializer<T> binarySerializer = binarySerializer;
 
     /// <summary>
-    /// A value indicating whether the instance is busy.
+    /// Simple constructor for default values
     /// </summary>
-    private bool _busy;
-
-    public DiskReadWriteBinary(string rootPath, IBinarySerializer<T> binarySerializer) : base(rootPath)
-    {
-        _buffer = new byte[1024 * Marshal.SizeOf<T>()];
-        this.binarySerializer = binarySerializer;
-    }
+    public DiskReadWriteBinary(string rootPath)
+        : this(rootPath, new MemoryCopyBinarySerializer<T>()) { }
 
     protected override async Task<T[]> ReadValuesFromFile(FileStream fileStream, List<int> indexes)
     {
-        try
+        // read
+        if (fileStream.Length == 0)
         {
-            SetBusy_ThrowIfAlreadyBusy();
-            await CheckMarkAndThrowIfWrong(fileStream);
-            var positions = await ReadElementPositions(fileStream);
-
-            // allocate necessary memories
-            T[] result = new T[indexes.Count];
-
-            // read elements
-            for (int i = 0; i < indexes.Count; i++)
-            {
-                int index = indexes[i];
-                int nextPosition = (int)(index >= positions.Length - 1 ? fileStream.Length : positions[index + 1]);
-                int length = nextPosition - positions[index];
-
-                if (length > 0)
-                {
-                    if (_buffer.Length <= length)
-                    {
-                        Array.Resize(ref _buffer, length);
-                    }
-                    var c = await fileStream.ReadAsync(_buffer.AsMemory(0, length));
-                    if (c != length)
-                    {
-                        ThrowFileFormatException($"could not read element at index {index}. read bytes:{c}, expected: {length}");
-                    }
-                    result[index] = binarySerializer.Deserialize(_buffer[..length]);
-                }
-                else
-                {
-                    result[index] = default;
-                }
-            }
-            return result;
+            throw new Exception("file has no content");
         }
-        finally
+        await CheckMarkAndThrowIfWrong(fileStream);
+        var positions = await DiskReadWriteBinary<T>.ReadElementPositions(fileStream);
+        var allElementsBytes = await ReadAllElements(fileStream, positions);
+
+        // select
+        T[] result = new T[indexes.Count];
+        for (int i = 0; i < indexes.Count; i++)
         {
-            _busy = false;
+            result[i] = binarySerializer.Deserialize(allElementsBytes[indexes[i]]);
         }
+
+        return result;
     }
 
     protected override async Task WriteValuesToFile(FileStream fileStream, List<T> values, List<int> indexes)
     {
-        try
+        // read
+        await CheckMarkAndThrowIfWrong(fileStream);
+        List<byte[]> allElementsBytes;
+        if (fileStream.Length > 0)
         {
-            SetBusy_ThrowIfAlreadyBusy();
-            byte[][] db = null!;
+            var positions = await DiskReadWriteBinary<T>.ReadElementPositions(fileStream);
+            allElementsBytes = await ReadAllElements(fileStream, positions);
+        }
+        else
+        {
+            allElementsBytes = [];
+        }
 
-            if (fileStream.Length != 0)
+        // override elements
+        for (int i = 0; i < allElementsBytes.Count; i++)
+        {
+            int v = indexes.BinarySearch(i);
+            if (v >= 0)
             {
-                // check file mark and read all the elements
-                await CheckMarkAndThrowIfWrong(fileStream);
-                var positions = await ReadElementPositions(fileStream);
-                db = await ReadAllElements(fileStream, positions);
+                allElementsBytes[i] = binarySerializer.Serialize(values[indexes[v]]);
+            }
+        }
+
+        // new elements
+        int maxIndex = indexes.Max();
+        allElementsBytes.EnsureCapacity(maxIndex + 1);
+        for (int i = allElementsBytes.Count; i <= maxIndex; i++)
+        {
+            int v = indexes.BinarySearch(i);
+            if (v >= 0)
+            {
+                allElementsBytes.Add([]);
             }
             else
             {
-                // write mark
-                await fileStream.WriteAsync(FileMark);
-                db = [];
+                v = ~v;
+                allElementsBytes.Add(binarySerializer.Serialize(values[v]));
             }
-
-            // insert new values to db
-            int maxIndex = indexes.Max();
-            if (db.Length <= maxIndex)
-            {
-                Array.Resize(ref db, maxIndex + 1);
-            }
-            for (int i = 0; i < indexes.Count; i++)
-            {
-                db[indexes[i]] = binarySerializer.Serialize(values[i]);
-            }
-
-            // write new positions
-            fileStream.Seek(FileMark.Length, SeekOrigin.Begin);
-            int elementPosition = (int)fileStream.Position + db.Length * sizeof(int);
-            for (int i = 0; i < db.Length; i++)
-            {
-                BinaryPrimitives.WriteInt32LittleEndian(_buffer.AsSpan(0, sizeof(int)), elementPosition);
-                await fileStream.WriteAsync(_buffer.AsMemory(0, sizeof(int)));
-                elementPosition += db[i]?.Length ?? 0;
-            }
-
-            // write all elements
-            for (int i = 0; i < db.Length; i++)
-            {
-                if (db[i] is not null && db[i].Length != 0)
-                    await fileStream.WriteAsync(db[i]);
-            }
-            fileStream.SetLength(fileStream.Position);
         }
-        finally
+
+        // write
+        await WriteAllToFile(fileStream, allElementsBytes);
+    }
+
+    protected override async Task DeleteValueFromFile(FileStream fileStream, List<int> indexes)
+    {
+        if (fileStream.Length == 0)
         {
-            _busy = false;
+            throw new Exception("file has no content");
         }
+
+        // read
+        await CheckMarkAndThrowIfWrong(fileStream);
+        var positions = await DiskReadWriteBinary<T>.ReadElementPositions(fileStream);
+        var allElementsBytes = await ReadAllElements(fileStream, positions);
+
+        // remove elements
+        for (int i = indexes.Count - 1; i >= 0; i--)
+        {
+            allElementsBytes.RemoveAt(indexes[i]);
+        }
+
+        // write
+        await WriteAllToFile(fileStream, allElementsBytes);
     }
 
     /// <summary>
-    /// Creates a new instance of <see cref="DiskReadWriteBinary{T}"/> with the <see cref="MemoryCopyBinarySerializer{T}"/> serializer.
+    /// Writes to the whole file, the file mark and positions and elements; everything
     /// </summary>
-    public static DiskReadWriteBinary<T> CreateDefault(string rootPath)
+    private static async Task WriteAllToFile(FileStream fileStream, List<byte[]> elements)
     {
-        return new(rootPath, new MemoryCopyBinarySerializer<T>());
+        // write file mark
+        fileStream.Seek(0, SeekOrigin.Begin);
+        await fileStream.WriteAsync(FileMark);
+
+        // write positions
+        int elementPosition = (int)fileStream.Position + elements.Count * sizeof(int);
+        byte[] buffer = new byte[sizeof(int)];
+        for (int i = 0; i < elements.Count; i++)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, elementPosition);
+            await fileStream.WriteAsync(buffer);
+            elementPosition += elements[i].Length;
+        }
+
+        // write elements
+        for (int i = 0; i < elements.Count; i++)
+        {
+            await fileStream.WriteAsync(elements[i]);
+        }
     }
 
     /// <summary>
     /// reads byte arrays from the file.
     /// </summary>
-    private static async Task<byte[][]> ReadAllElements(FileStream fileStream, int[] allPositions)
+    private static async Task<List<byte[]>> ReadAllElements(FileStream fileStream, int[] allPositions)
     {
-        byte[][] result = new byte[allPositions.Length][];
+        List<byte[]> result = new(allPositions.Length);
         fileStream.Seek(allPositions[0], SeekOrigin.Begin);
         for (int i = 0; i < allPositions.Length; i++)
         {
@@ -180,11 +179,19 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
 
             // read
             int length = nextPosition - position;
-            result[i] = new byte[length];
-            int c = await fileStream.ReadAsync(result[i].AsMemory(0));
-            if (c != length)
+            if (length > 0)
             {
-                ThrowFileFormatException();
+                byte[] buffer = new byte[length];
+                int c = await fileStream.ReadAsync(buffer.AsMemory(0));
+                if (c != length)
+                {
+                    ThrowFileFormatException();
+                }
+                result.Add(buffer);
+            }
+            else
+            {
+                result.Add([]);
             }
         }
         return result;
@@ -193,14 +200,15 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
     /// <summary>
     /// Reads the positions of the elements from the file.
     /// </summary>
-    private async Task<int[]> ReadElementPositions(FileStream fileStream)
+    private static async Task<int[]> ReadElementPositions(FileStream fileStream)
     {
-        int c = await fileStream.ReadAsync(_buffer.AsMemory(0, sizeof(int)));
-        if (c != sizeof(int))
+        byte[] buffer = new byte[sizeof(int)];
+        int c = await fileStream.ReadAsync(buffer);
+        if (c != buffer.Length)
         {
             ThrowFileFormatException();
         }
-        int firstElementPosition = BinaryPrimitives.ReadInt32LittleEndian(_buffer.AsSpan(0, sizeof(int)));
+        int firstElementPosition = BinaryPrimitives.ReadInt32LittleEndian(buffer);
 
         // check if the first element's position seems correct
         if ((firstElementPosition - FileMark.Length) % sizeof(int) != 0)
@@ -215,39 +223,19 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
         // read all element's positions
         if (count > 1)
         {
-            int size = sizeof(int) * (count - 1);
-            c = await fileStream.ReadAsync(_buffer.AsMemory(0, size));
-            if (c != size)
+            buffer = new byte[firstElementPosition - FileMark.Length - sizeof(int)];
+            c = await fileStream.ReadAsync(buffer);
+            if (c != buffer.Length)
             {
                 ThrowFileFormatException();
             }
             for (int i = 0; i < positions.Length - 1; i++)
             {
-                positions[i + 1] = BitConverter.ToInt32(_buffer.AsSpan(i * sizeof(int), sizeof(int)));
+                positions[i + 1] = BitConverter.ToInt32(buffer.AsSpan(i * sizeof(int), sizeof(int)));
             }
-        }
-        else
-        {
-            positions[0] = firstElementPosition;
         }
 
         return positions;
-    }
-
-    /// <summary>
-    /// Gets an approximate size of <typeparamref name="T"/> in bytes by doing a test.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoOptimization)]
-    private static int GetApproximateSizeOfT()
-    {
-        const int TestCount = 5;
-        long before = GC.GetTotalMemory(false);
-        for (int i = 0; i < TestCount; i++)
-        {
-            new T();
-        }
-        long after = GC.GetTotalMemory(false);
-        return (int)(after - before) / TestCount;
     }
 
     /// <summary>
@@ -257,7 +245,7 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static async Task CheckMarkAndThrowIfWrong(FileStream fileStream)
     {
-        if (!await CheckFileMark(fileStream))
+        if (fileStream.Length > 0 && !await CheckFileMark(fileStream))
         {
             ThrowFileFormatException();
         }
@@ -297,19 +285,6 @@ public sealed class DiskReadWriteBinary<T> : DiskReadWriteBase<T>
             }
         }
         return true;
-    }
-
-    /// <summary>
-    /// Throws an exception if the instance is busy. (<seealso cref="_busy"/>)
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetBusy_ThrowIfAlreadyBusy()
-    {
-        if (_busy)
-        {
-            throw new Exception("The instance is busy.");
-        }
-        _busy = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
