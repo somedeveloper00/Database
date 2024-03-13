@@ -10,7 +10,7 @@ public sealed class SystemJsonSerializer<T> : IJsonSerializer<T>
     /// <summary>
     /// The options used for serialization and deserialization.
     /// </summary>
-    public JsonSerializerOptions options = new()
+    public readonly JsonSerializerOptions options = new()
     {
         WriteIndented = false,
         PropertyNameCaseInsensitive = true,

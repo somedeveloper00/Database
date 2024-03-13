@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using Database.Common;
 using Database.Common.BinarySerializationImplementations;
 
-namespace Database.ReadWriteimplementations;
+namespace Database.ReadWriteImplementations;
 
 /// <summary>
 /// A <see cref="IReadWriteMethod{T}"/> that writes to and reads from disk using binary serialization. 
@@ -16,8 +16,8 @@ namespace Database.ReadWriteimplementations;
 ///     <item> 8 bytes: a file mark that is used to check if the file format is correct. 
 ///     comes from <see cref="DiskReadWriteBinary{T}.FileMark"/></item>
 ///     
-///     <item> N * <see cref="DiskReadWriteBinary{T}.sizeof(int)"/> bytes: the position of each element in 
-///     file, as <see cref="DiskReadWriteBinary{T}.sizeof(int)"/> bytes integers.</item>
+///     <item> N * <c>sizeof(int)</c> bytes: the position of each element in 
+///     file, as <c>sizeof(int)</c> bytes integers.</item>
 ///     
 ///     <item> The elements themselves.</item>
 ///     
@@ -94,7 +94,8 @@ public sealed class DiskReadWriteBinary<T>(string rootPath, IBinarySerializer<T>
 
         // new elements
         int maxIndex = indexes.Max();
-        allElementsBytes.EnsureCapacity(maxIndex + 1);
+        if (allElementsBytes.Capacity < maxIndex + 1)
+            allElementsBytes.Capacity = maxIndex + 1;
         for (int i = allElementsBytes.Count; i <= maxIndex; i++)
         {
             int v = indexes.BinarySearch(i);
@@ -273,13 +274,13 @@ public sealed class DiskReadWriteBinary<T>(string rootPath, IBinarySerializer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool AreArraysEqual<F>(F[] a1, F[] a2)
     {
-        if (a1!.Length != a2!.Length)
+        if (a1.Length != a2.Length)
         {
             return false;
         }
         for (int i = 0; i < a1.Length; i++)
         {
-            if (!a1![i]!.Equals(a2![i]))
+            if (!a1[i]!.Equals(a2[i]))
             {
                 return false;
             }
@@ -290,6 +291,6 @@ public sealed class DiskReadWriteBinary<T>(string rootPath, IBinarySerializer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ThrowFileFormatException(string? message = null)
     {
-        throw new Exception($"The file format is not correct.{(string.IsNullOrEmpty(message) ? string.Empty : $" {message}")}");
+        throw new($"The file format is not correct.{(string.IsNullOrEmpty(message) ? string.Empty : $" {message}")}");
     }
 }

@@ -1,6 +1,4 @@
-﻿using Database.Common;
-
-namespace Database;
+﻿namespace Database;
 
 /// <summary>
 /// Represents the database for a specific type of data at a specific path. It uses interfaces so 
@@ -57,7 +55,7 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
             {
                 result[i] = value;
             }
-            
+
             if (!foundCache || result[i] == null)
             {
                 if (!startedReading)
@@ -121,7 +119,6 @@ public sealed class TypeDatabase<T>(string path, IReadWriteMethod<T> readWriteMe
 
     /// <summary>
     /// Sets the range of values, asynchronously. <paramref name="startIndex"/> is inclusive 
-    /// while <paramref name="endIndex"/> is exclusive.
     /// </summary>
     public async Task SetRange(IList<T> values, int startIndex)
     {

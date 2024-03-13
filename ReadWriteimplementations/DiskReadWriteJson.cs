@@ -3,13 +3,12 @@ using Database.Common;
 using Database.Common.JsonSerializationImplementations;
 using Database.Extensions;
 
-namespace Database.ReadWriteimplementations;
+namespace Database.ReadWriteImplementations;
 
 /// <summary>
 /// A <see cref="IReadWriteMethod{T}"/> that writes to and reads from disk using JSON.
 /// </summary>
-public sealed class DiskReadWriteJson<T>
-    (string rootPath, Encoding encoding, IJsonSerializer<List<T>> jsonSerializer)
+public sealed class DiskReadWriteJson<T>(string rootPath, Encoding encoding, IJsonSerializer<List<T>> jsonSerializer)
     : DiskReadWriteBase<T>(
         rootPath,
         FileMode.OpenOrCreate, FileMode.OpenOrCreate, FileMode.OpenOrCreate,
@@ -66,18 +65,12 @@ public sealed class DiskReadWriteJson<T>
 
         // new elements
         int maxIndex = indexes.Max();
-        allElements.EnsureCapacity(maxIndex);
+        if (allElements.Capacity < maxIndex + 1)
+            allElements.Capacity = maxIndex + 1;
         for (int i = allElements.Count; i <= maxIndex; i++)
         {
             int index = indexes.BinarySearch(i);
-            if (index >= 0)
-            {
-                allElements.Add(values[index]);
-            }
-            else
-            {
-                allElements.Add(new T());
-            }
+            allElements.Add(index >= 0 ? values[index] : new T());
         }
 
         // write

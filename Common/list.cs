@@ -136,7 +136,7 @@ public unsafe ref struct list<T>(int capacity) where T : unmanaged
     /// <summary>
     /// Changes the legntgh of <see cref="_values"/>, while copying old data along with it
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ChangeCapacity(int newCapacity)
     {
         var old = _values;
@@ -148,7 +148,7 @@ public unsafe ref struct list<T>(int capacity) where T : unmanaged
     /// Checks the range of <paramref name="index"/> and either throws 
     /// <see cref="IndexOutOfRangeException"/> or returns the input index.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly int ThrowIfOutOfBounds(int index)
     {
         return index < 0 | index >= _length

@@ -11,11 +11,10 @@ public sealed class MemoryCopyBinarySerializer<T> : IBinarySerializer<T> where T
 {
     public unsafe byte[] Serialize(T value)
     {
-        ReadOnlySpan<T> span = MemoryMarshal.CreateReadOnlySpan(ref value, 1);
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
         Span<byte> bytes = stackalloc byte[sizeof(T)];
 #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-        MemoryMarshal.Write(bytes, in value);
+        MemoryMarshal.Write(bytes, ref value);
         return bytes.ToArray();
     }
 

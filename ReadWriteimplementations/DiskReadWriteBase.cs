@@ -1,4 +1,4 @@
-namespace Database.ReadWriteimplementations;
+namespace Database.ReadWriteImplementations;
 
 /// <summary>
 /// a <see cref="IReadWriteMethod{T}"/> that writes to and reads from disk

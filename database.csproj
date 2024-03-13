@@ -1,15 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;netstandard2.1</TargetFrameworks>
     <LangVersion>12.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Title>Database</Title>
+    <Authors>Saeed Barari</Authors>
+    <PackageProjectUrl>https://github.com/somedeveloper00/Database</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/somedeveloper00/Database</RepositoryUrl>
+    <Company />
+    <Product>Database</Product>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="CacheImplementations\" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0-preview.2.24128.5" />
   </ItemGroup>
 
 </Project>
