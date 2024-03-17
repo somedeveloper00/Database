@@ -38,7 +38,7 @@ namespace Database.Core
         /// Gets the item with the specified ID
         /// </summary>
         /// <param name="id">The ID of the element</param>
-        public DatabaseElement<T> GetById(long id) => implementation.Get(id);
+        public DatabaseElement<T> GetById(ulong id) => implementation.Get(id);
 
         /// <summary>
         /// Gets the element at the specified index.
@@ -89,7 +89,7 @@ namespace Database.Core
         /// Deletes an item from database by ID.
         /// </summary>
         /// <param name="id">The ID of the element to delete</param>
-        public void DeleteById(long id) => implementation.Delete(id);
+        public void DeleteById(long id) => implementation.Delete((ulong)id);
 
         /// <summary>
         /// Deletes items from the specified range.

@@ -1,9 +1,9 @@
 {
-    "name": "Database",
+    "name": "Database.Essentials.Unity",
     "rootNamespace": "",
     "references": [
         "GUID:6e93d336e990425991abefa124889517",
-        "GUID:a3e824e126f409d40a08b7b8f740081b"
+        "GUID:0d1ca96f3fbe33249ba8c8a3faf77ddc"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

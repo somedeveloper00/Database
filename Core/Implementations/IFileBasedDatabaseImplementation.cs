@@ -1,9 +1,8 @@
 using System;
 using System.IO;
-using Database.Core;
-using Database.Extensions;
+using Database.Core.Extensions;
 
-namespace Database.Implementations
+namespace Database.Core.Implementations
 {
     /// <summary>
     /// A database implementation category that saves to a local file
@@ -40,7 +39,7 @@ namespace Database.Implementations
 
         Span<DatabaseElement<T>> IDatabaseImplementation<T>.GetAll() => ReadAllFromFile();
 
-        DatabaseElement<T> IDatabaseImplementation<T>.Get(long id)
+        DatabaseElement<T> IDatabaseImplementation<T>.Get(ulong id)
         {
             var db = ReadAllFromFile();
             for (int i = 0; i < db.Length; i++)
@@ -118,7 +117,7 @@ namespace Database.Implementations
             WriteAllToFile(db);
         }
 
-        void IDatabaseImplementation<T>.Delete(long id)
+        void IDatabaseImplementation<T>.Delete(ulong id)
         {
             var db = ReadAllFromFile();
             for (int i = 0; i < db.Length; i++)

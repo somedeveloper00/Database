@@ -21,7 +21,7 @@ namespace Database.Core
         /// Get element by ID
         /// </summary>
         /// <param name="id">ID of the element</param>
-        public DatabaseElement<T> Get(long id);
+        public DatabaseElement<T> Get(ulong id);
 
         /// <summary>
         /// Get elements at range
@@ -84,7 +84,7 @@ namespace Database.Core
         /// Deletes element by ID
         /// </summary>
         /// <param name="id">ID of the element to delete</param>
-        public void Delete(long id);
+        public void Delete(ulong id);
 
         /// <summary>
         /// Deletes all elements in this database.
@@ -97,7 +97,7 @@ namespace Database.Core
     /// </summary>
     public sealed class IdNotFoundException : Exception
     {
-        public IdNotFoundException(long id) : base("ID: " + id) { }
+        public IdNotFoundException(ulong id) : base("ID: " + id) { }
     }
 
     /// <summary>

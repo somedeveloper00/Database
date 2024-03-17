@@ -1,6 +1,6 @@
 using System;
 
-namespace Database.Extensions
+namespace Database.Core.Extensions
 {
     internal static class SpanExtensions
     {

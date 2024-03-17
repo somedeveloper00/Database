@@ -1,10 +1,7 @@
 {
-    "name": "Database",
+    "name": "Database.Core",
     "rootNamespace": "",
-    "references": [
-        "GUID:6e93d336e990425991abefa124889517",
-        "GUID:a3e824e126f409d40a08b7b8f740081b"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

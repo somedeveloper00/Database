@@ -8,10 +8,10 @@ namespace Database.Core
     [Serializable]
     public struct DatabaseElement<T>
     {
-        public long id;
+        public ulong id;
         public T value;
 
-        public DatabaseElement(long id, T value)
+        public DatabaseElement(ulong id, T value)
         {
             this.id = id;
             this.value = value;
