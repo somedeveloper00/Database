@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine.Rendering;
 
 namespace Database.Essentials.Unity.Extensions
 {
-    internal static class StringExtensions
+    public static class StringExtensions
     {
         private const int EscapeCharacter = '\\';
 

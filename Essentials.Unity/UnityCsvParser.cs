@@ -34,7 +34,7 @@ namespace Database.Essentials.Unity
             // resolve table
             for (int i = 0; i < rows.Length; i++)
             {
-                table[i] = rows[i].SplitToSegmentsNonEscapeNonQuote(TypeHelper<T>.FieldInfos.Length, ',', ' ');
+                table[i] = rows[i].SplitToSegmentsNonEscapeNonQuote(TypeHelper<T>.FieldInfos.Length, ',');
             }
 
             if (table.Length > 0)
@@ -129,6 +129,8 @@ namespace Database.Essentials.Unity
 
         private static string ConvertToString(object obj)
         {
+            if (obj is null)
+                return " ";
             if (obj.GetType().IsPrimitive || obj is string)
             {
                 return Convert.ToString(obj);
@@ -140,6 +142,8 @@ namespace Database.Essentials.Unity
 
         private static object ConvertFromString(string str, Type type)
         {
+            if (string.IsNullOrEmpty(str))
+                return default;
             if (type.IsPrimitive || type == typeof(string))
             {
                 return Convert.ChangeType(str, type);
