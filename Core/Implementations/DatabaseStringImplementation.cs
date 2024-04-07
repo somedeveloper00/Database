@@ -10,28 +10,28 @@ namespace Database.Core.Implementations
         where T1 : struct
         where T2 : struct, IObj2StrSerializer
     {
-        public string filePath { get; set; }
-        public string directory { get; set; }
+        public string FilePath { get; set; }
+        public string Directory { get; set; }
 
         public string FileExtension => new T2().FileExtension;
 
         public Span<DatabaseElement<T1>> ReadAllFromFile()
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(FilePath))
             {
                 return Span<DatabaseElement<T1>>.Empty;
             }
-            var text = File.ReadAllText(filePath);
+            var text = File.ReadAllText(FilePath);
             return new T2().Read<T1>(text);
         }
 
         public void WriteAllToFile(Span<DatabaseElement<T1>> values)
         {
-            if (!Directory.Exists(directory))
+            if (!System.IO.Directory.Exists(Directory))
             {
-                Directory.CreateDirectory(directory);
+                System.IO.Directory.CreateDirectory(Directory);
             }
-            File.WriteAllText(filePath, new T2().Write(values));
+            File.WriteAllText(FilePath, new T2().Write(values));
         }
     }
 }

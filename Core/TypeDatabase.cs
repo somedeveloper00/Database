@@ -10,7 +10,7 @@ namespace Database.Core
         /// <summary>
         /// Path for the database. The meaning of the path depends on the <see cref="implementation"/>
         /// </summary>
-        public readonly string Path;
+        public readonly string path;
 
         /// <summary>
         /// The implementation of the database.
@@ -19,9 +19,9 @@ namespace Database.Core
 
         public TypeDatabase(string path, IDatabaseImplementation<T> implementation)
         {
-            Path = path;
+            this.path = path;
             this.implementation = implementation ?? throw new ArgumentNullException(nameof(implementation));
-            this.implementation.SetPath(Path);
+            this.implementation.SetPath(this.path);
         }
 
         /// <summary>
@@ -38,20 +38,24 @@ namespace Database.Core
         /// Gets the item with the specified ID
         /// </summary>
         /// <param name="id">The ID of the element</param>
-        public DatabaseElement<T> GetById(ulong id) => implementation.Get(id);
+        /// <param name="element">element found at id</param>
+        public bool TryGetById(ulong id, out DatabaseElement<T> element) => implementation.TryGet(id, out element);
 
         /// <summary>
         /// Gets the element at the specified index.
         /// </summary>
         /// <param name="index">Index of the element</param>
-        public DatabaseElement<T> GetAt(int index) => implementation.Get(index);
+        /// <param name="element">element found at index</param>
+        public bool TryGetAt(int index, out DatabaseElement<T> element) => implementation.TryGet(index, out element);
 
         /// <summary>
         /// Gets the items at the specified range
         /// </summary>
         /// <param name="startIndex">Starting, inclusive, index of items.</param>
         /// <param name="count">Number of items</param>
-        public Span<DatabaseElement<T>> GetRange(int startIndex, int count) => implementation.Get(startIndex, count);
+        /// <param name="elements">elements found at range</param>
+        public bool TryGetRange(int startIndex, int count, out Span<DatabaseElement<T>> elements) =>
+            implementation.TryGet(startIndex, count, out elements);
 
         /// <summary>
         /// Sets all elements of this database, <b><i>replacing any previous data</i></b>!

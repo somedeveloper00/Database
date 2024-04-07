@@ -9,51 +9,73 @@ namespace Database.Core.Implementations
     /// </summary>
     public interface IFileBasedDatabaseImplementation<T> : IDatabaseImplementation<T> where T : struct
     {
-        string filePath { set; }
+        string FilePath { set; }
 
-        string directory { set; }
+        string Directory { set; }
 
         /// <summary>
-        /// File extension for the to be applied to <see cref="filePath"/>
+        /// File extension for the to be applied to <see cref="FilePath"/>
         /// </summary>
         string FileExtension { get; }
 
         /// <summary>
-        /// Read all data from the file at <see cref="filePath"/>
+        /// Read all data from the file at <see cref="FilePath"/>
         /// </summary>
         /// <returns></returns>
         Span<DatabaseElement<T>> ReadAllFromFile();
 
         /// <summary>
-        /// Write all <see cref="values"/> data to the file at <see cref="filePath"/>
+        /// Write all <see cref="values"/> data to the file at <see cref="FilePath"/>
         /// </summary>
         void WriteAllToFile(Span<DatabaseElement<T>> values);
 
         void IDatabaseImplementation<T>.SetPath(string path)
         {
-            filePath = Path.Combine(path, $"{typeof(T).Name}.{FileExtension}");
-            directory = path;
+            FilePath = Path.Combine(path, $"{typeof(T).Name}.{FileExtension}");
+            Directory = path;
         }
 
         int IDatabaseImplementation<T>.GetLength() => ReadAllFromFile().Length;
 
         Span<DatabaseElement<T>> IDatabaseImplementation<T>.GetAll() => ReadAllFromFile();
 
-        DatabaseElement<T> IDatabaseImplementation<T>.Get(ulong id)
+        bool IDatabaseImplementation<T>.TryGet(ulong id, out DatabaseElement<T> element)
         {
             var db = ReadAllFromFile();
             for (int i = 0; i < db.Length; i++)
             {
                 if (db[i].id == id)
-                    return db[i];
+                {
+                    element = db[i];
+                    return true;
+                }
             }
-            throw new IdNotFoundException(id);
+            element = default;
+            return false;
         }
 
-        Span<DatabaseElement<T>> IDatabaseImplementation<T>.Get(int startIndex, int count) =>
-            ReadAllFromFile().Slice(startIndex, count);
+        bool IDatabaseImplementation<T>.TryGet(int startIndex, int count, out Span<DatabaseElement<T>> elements)
+        {
+            elements = ReadAllFromFile();
+            if (elements.Length <= count + startIndex)
+            {
+                return false;
+            }
+            elements = elements.Slice(startIndex, count);
+            return true;
+        }
 
-        DatabaseElement<T> IDatabaseImplementation<T>.Get(int index) => ReadAllFromFile()[index];
+        bool IDatabaseImplementation<T>.TryGet(int index, out DatabaseElement<T> element)
+        {
+            var elements = ReadAllFromFile();
+            if (elements.Length <= index)
+            {
+                element = default;
+                return false;
+            }
+            element = elements[index];
+            return true;
+        }
 
         void IDatabaseImplementation<T>.Set(DatabaseElement<T> value)
         {

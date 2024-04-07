@@ -21,20 +21,23 @@ namespace Database.Core
         /// Get element by ID
         /// </summary>
         /// <param name="id">ID of the element</param>
-        public DatabaseElement<T> Get(ulong id);
+        /// <param name="element">element found with id</param>
+        public bool TryGet(ulong id, out DatabaseElement<T> element);
 
         /// <summary>
         /// Get elements at range
         /// </summary>
         /// <param name="startIndex">Starting, inclusive, index of elements.</param>
         /// <param name="count">Number of elements.</param>
-        public Span<DatabaseElement<T>> Get(int startIndex, int count);
+        /// <param name="elements">elements found at range</param>
+        public bool TryGet(int startIndex, int count, out Span<DatabaseElement<T>> elements);
 
         /// <summary>
         /// Gets element by ID
         /// </summary>
         /// <param name="index">Index to get element at</param>
-        public DatabaseElement<T> Get(int index);
+        /// <param name="element">element found at index</param>
+        public bool TryGet(int index, out DatabaseElement<T> element);
 
         /// <summary>
         /// Gets all elements
