@@ -131,9 +131,13 @@ namespace Database.Essentials.Unity
         {
             if (obj is null)
                 return " ";
-            if (obj.GetType().IsPrimitive || obj is string)
+            if (obj.GetType().IsPrimitive)
             {
                 return Convert.ToString(obj);
+            }
+            else if (obj is string objstr)
+            {
+                return "\"" + objstr.Replace("\"", "\\\"") + "\"";
             }
             var str = JsonUtility.ToJson(obj);
             str = str.Replace("\\", "\\\\").Replace("\"", "\\\"");
@@ -144,9 +148,13 @@ namespace Database.Essentials.Unity
         {
             if (string.IsNullOrEmpty(str))
                 return default;
-            if (type.IsPrimitive || type == typeof(string))
+            if (type.IsPrimitive)
             {
                 return Convert.ChangeType(str, type);
+            }
+            else if (type == typeof(string))
+            {
+                return str[1..^1].Replace("\\\"", "\"");
             }
             str = str.Replace("\\\\", "\\").Replace("\\\"", "\"");
             str = str[
