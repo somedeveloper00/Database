@@ -13,7 +13,7 @@ namespace Database.Essentials.Unity
     /// <summary>
     /// A simple custom CSV parser
     /// </summary>
-    public struct UnityCsvParser : IObj2StrSerializer
+    public readonly struct UnityCsvParser : IObj2StrSerializer
     {
         private static class TypeHelper<T>
         {
@@ -22,7 +22,7 @@ namespace Database.Essentials.Unity
             public static readonly string[] FieldNames = FieldInfos.Select(f => f.Name).ToArray();
         }
 
-        public string FileExtension => "csv";
+        public readonly string FileExtension => "csv";
 
         public Span<DatabaseElement<T>> Read<T>(string str) where T : struct
         {
@@ -157,10 +157,7 @@ namespace Database.Essentials.Unity
                 return str[1..^1].Replace("\\\"", "\"");
             }
             str = str.Replace("\\\\", "\\").Replace("\\\"", "\"");
-            str = str[
-                (str[0] == '\"' ? 1 : 0)
-                ..
-                (str[^1] == '\"' ? ^1 : str.Length)];
+            str = str[(str[0] == '\"' ? 1 : 0)..(str[^1] == '\"' ? ^1 : str.Length)];
             return JsonUtility.FromJson(str, type);
         }
     }
