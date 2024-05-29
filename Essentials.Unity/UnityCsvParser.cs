@@ -137,7 +137,8 @@ namespace Database.Essentials.Unity
             }
             else if (obj is string objstr)
             {
-                return "\"" + objstr.Replace("\"", "\\\"") + "\"";
+                string escaped = objstr.Replace("\"", "\\\"");
+                return objstr.Contains(',') ? ("\"" + escaped + "\"") : escaped;
             }
             var str = JsonUtility.ToJson(obj);
             str = str.Replace("\\", "\\\\").Replace("\"", "\\\"");
@@ -154,7 +155,7 @@ namespace Database.Essentials.Unity
             }
             else if (type == typeof(string))
             {
-                return str.Length > 1 ? str[1..^1].Replace("\\\"", "\"") : string.Empty;
+                return str.Length > 1 ? str[(str[0] == '\"' ? 1 : 0)..(str[^1] == '\"' ? ^1 : ^0)].Replace("\\\"", "\"") : string.Empty;
             }
 
             if (str.Length > 1)
