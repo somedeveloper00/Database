@@ -15,7 +15,7 @@ namespace Database.Core.Implementations
         /// <summary>
         /// Read the containing of the <param name="str"></param> and parse then and return the objects.
         /// </summary>
-        Span<DatabaseElement<T>> Read<T>(string str) where T : struct;
+        DatabaseElement<T>[] Read<T>(string str) where T : struct;
 
         /// <summary>
         /// Write the <param name="values"></param> to string and return it.

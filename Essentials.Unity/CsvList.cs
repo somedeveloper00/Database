@@ -10,7 +10,7 @@ namespace Database.Essentials.Unity
     [Serializable]
     public sealed class CsvList<T> : List<T>, ISerializationCallbackReceiver
     {
-        [SerializeField] private T[] elements;
+        [SerializeField] public T[] elements;
 
         public void OnAfterDeserialize()
         {

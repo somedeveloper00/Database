@@ -9,7 +9,7 @@ namespace Database.Core.Implementations
     /// </summary>
     public interface IFileBasedDatabaseImplementation<T> : IDatabaseImplementation<T> where T : struct
     {
-        string FilePath { set; }
+        string FilePath { get; set; }
 
         string Directory { set; }
 
@@ -18,11 +18,15 @@ namespace Database.Core.Implementations
         /// </summary>
         string FileExtension { get; }
 
+        DateTime LastReadDate { get; set; }
+
+        DatabaseElement<T>[] LastReadData { get; set; }
+
         /// <summary>
         /// Read all data from the file at <see cref="FilePath"/>
         /// </summary>
         /// <returns></returns>
-        Span<DatabaseElement<T>> ReadAllFromFile();
+        DatabaseElement<T>[] ReadAllFromExistingFisle();
 
         /// <summary>
         /// Write all <see cref="values"/> data to the file at <see cref="FilePath"/>
@@ -35,18 +39,23 @@ namespace Database.Core.Implementations
             Directory = path;
         }
 
-        int IDatabaseImplementation<T>.GetLength() => ReadAllFromFile().Length;
+        int IDatabaseImplementation<T>.GetLength() => TryReadFile() ? LastReadData.Length : 0;
 
-        Span<DatabaseElement<T>> IDatabaseImplementation<T>.GetAll() => ReadAllFromFile();
+        Span<DatabaseElement<T>> IDatabaseImplementation<T>.GetAll() => TryReadFile() ? LastReadData.AsSpan() : Span<DatabaseElement<T>>.Empty;
 
         bool IDatabaseImplementation<T>.TryGet(ulong id, out DatabaseElement<T> element)
         {
-            var db = ReadAllFromFile();
-            for (int i = 0; i < db.Length; i++)
+            if (!TryReadFile())
             {
-                if (db[i].id == id)
+                element = default;
+                return false;
+            }
+
+            for (int i = 0; i < LastReadData.Length; i++)
+            {
+                if (LastReadData[i].id == id)
                 {
-                    element = db[i];
+                    element = LastReadData[i];
                     return true;
                 }
             }
@@ -56,102 +65,138 @@ namespace Database.Core.Implementations
 
         bool IDatabaseImplementation<T>.TryGet(int startIndex, int count, out Span<DatabaseElement<T>> elements)
         {
-            elements = ReadAllFromFile();
-            if (elements.Length <= count + startIndex)
+            if (!TryReadFile())
             {
+                elements = default;
                 return false;
             }
-            elements = elements.Slice(startIndex, count);
+
+            if (LastReadData.Length <= count + startIndex)
+            {
+                elements = default;
+                return false;
+            }
+            elements = LastReadData[startIndex..(startIndex + count)];
             return true;
         }
 
         bool IDatabaseImplementation<T>.TryGet(int index, out DatabaseElement<T> element)
         {
-            var elements = ReadAllFromFile();
-            if (elements.Length <= index)
+            if (!TryReadFile())
             {
                 element = default;
                 return false;
             }
-            element = elements[index];
+            if (LastReadData.Length <= index || index < 0)
+            {
+                element = default;
+                return false;
+            }
+            element = LastReadData[index];
             return true;
         }
 
         void IDatabaseImplementation<T>.Set(DatabaseElement<T> value)
         {
-            var db = ReadAllFromFile();
-            for (int i = 0; i < db.Length; i++)
+            TryReadFile();
+            var data = LastReadData;
+
+            for (int i = 0; i < data.Length; i++)
             {
-                if (db[i].id == value.id)
+                if (data[i].id == value.id)
                 {
-                    db[i] = value;
-                    WriteAllToFile(db);
+                    data[i] = value;
+                    WriteAllToFile(data);
                     return;
                 }
             }
 
             // if not found, add new item
-            db = db.Extend(db.Length + 1);
-            db[^1] = value;
-            WriteAllToFile(db);
+            Array.Resize(ref data, data.Length + 1);
+            data[^1] = value;
+            WriteAllToFile(data);
         }
 
         void IDatabaseImplementation<T>.Set(int startIndex, Span<DatabaseElement<T>> values)
         {
+            TryReadFile();
+            var data = LastReadData;
+
             var neededLength = startIndex + values.Length;
-            var db = ReadAllFromFile();
-            if (db.Length < neededLength)
+            if (data.Length < neededLength)
             {
-                db = db.Extend(neededLength);
+                Array.Resize(ref data, neededLength);
             }
-            values.CopyTo(db.Slice(startIndex, values.Length));
-            WriteAllToFile(db);
+            values.CopyTo(data[startIndex..values.Length]);
+            WriteAllToFile(data);
         }
 
         void IDatabaseImplementation<T>.Set(int index, DatabaseElement<T> value)
         {
-            var db = ReadAllFromFile();
-            if (db.Length <= index)
+            TryReadFile();
+            var data = LastReadData;
+
+            if (data.Length <= index)
             {
-                db = db.Extend(index + 1);
+                Array.Resize(ref data, index + 1);
             }
-            db[index] = value;
-            WriteAllToFile(db);
+            data[index] = value;
+            WriteAllToFile(data);
         }
 
         void IDatabaseImplementation<T>.Set(Span<DatabaseElement<T>> values) => WriteAllToFile(values);
 
         void IDatabaseImplementation<T>.Delete(int startIndex, int count)
         {
-            var db = ReadAllFromFile();
-            db = db.RemoveRange(startIndex, count);
-            WriteAllToFile(db);
+            TryReadFile();
+            var data = LastReadData;
+            data = data.AsSpan().RemoveRange(startIndex, count).ToArray();
+            WriteAllToFile(data);
         }
 
         void IDatabaseImplementation<T>.Delete(int index)
         {
-            var db = ReadAllFromFile();
-            if (db.Length <= index)
+            TryReadFile();
+            var data = LastReadData;
+            if (data.Length <= index)
             {
                 return;
             }
-            db = db.RemoveRange(index, 1);
-            WriteAllToFile(db);
+            data = data.AsSpan().RemoveRange(index, 1).ToArray();
+            WriteAllToFile(data);
         }
 
         void IDatabaseImplementation<T>.Delete(ulong id)
         {
-            var db = ReadAllFromFile();
-            for (int i = 0; i < db.Length; i++)
+            TryReadFile();
+            var data = LastReadData;
+            for (int i = 0; i < data.Length; i++)
             {
-                if (db[i].id == id)
+                if (data[i].id == id)
                 {
-                    db = db.RemoveRange(i, 1);
-                    WriteAllToFile(db);
+                    data = data.AsSpan().RemoveRange(i, 1).ToArray();
+                    WriteAllToFile(data);
                     return;
                 }
             }
         }
+
+        bool TryReadFile()
+        {
+            var fileInfo = GetFileInfo();
+            if (!fileInfo.Exists)
+            {
+                return false;
+            }
+            if (LastReadDate != fileInfo.LastWriteTimeUtc)
+            {
+                LastReadDate = DateTime.UtcNow;
+                LastReadData = ReadAllFromExistingFisle();
+            }
+            return true;
+        }
+
+        FileInfo GetFileInfo() => new(FilePath);
 
         void IDatabaseImplementation<T>.Delete() => WriteAllToFile(Span<DatabaseElement<T>>.Empty);
     }

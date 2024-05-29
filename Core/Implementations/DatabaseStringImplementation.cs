@@ -12,20 +12,18 @@ namespace Database.Core.Implementations
     {
         public string FilePath { get; set; }
         public string Directory { get; set; }
+        public DateTime LastReadDate { get; set; }
+        public DatabaseElement<T1>[] LastReadData { get; set; }
 
-        public string FileExtension => new T2().FileExtension;
+        public readonly string FileExtension => new T2().FileExtension;
 
-        public Span<DatabaseElement<T1>> ReadAllFromFile()
+        public readonly DatabaseElement<T1>[] ReadAllFromExistingFisle()
         {
-            if (!File.Exists(FilePath))
-            {
-                return Span<DatabaseElement<T1>>.Empty;
-            }
             var text = File.ReadAllText(FilePath);
             return new T2().Read<T1>(text);
         }
 
-        public void WriteAllToFile(Span<DatabaseElement<T1>> values)
+        public readonly void WriteAllToFile(Span<DatabaseElement<T1>> values)
         {
             if (!System.IO.Directory.Exists(Directory))
             {

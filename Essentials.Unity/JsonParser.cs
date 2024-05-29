@@ -12,8 +12,14 @@ namespace Database.Essentials.Unity
     {
         public readonly string FileExtension => "json";
 
-        public readonly Span<DatabaseElement<T>> Read<T>(string str) where T : struct => JsonUtility.FromJson<DatabaseElement<T>[]>(str);
+        public readonly DatabaseElement<T>[] Read<T>(string str) where T : struct => JsonUtility.FromJson<JsonDb<DatabaseElement<T>>>(str).elements;
 
-        public string Write<T>(Span<DatabaseElement<T>> values) where T : struct => JsonUtility.ToJson(values.ToArray(), false);
+        public string Write<T>(Span<DatabaseElement<T>> values) where T : struct => JsonUtility.ToJson(new JsonDb<DatabaseElement<T>> { elements = values.ToArray() }, false);
+
+        [Serializable]
+        public struct JsonDb<T>
+        {
+            public T[] elements;
+        }
     }
 }

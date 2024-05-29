@@ -24,7 +24,7 @@ namespace Database.Essentials.Unity
 
         public readonly string FileExtension => "csv";
 
-        public Span<DatabaseElement<T>> Read<T>(string str) where T : struct
+        public DatabaseElement<T>[] Read<T>(string str) where T : struct
         {
             var charArray = str.ToCharArray();
             var rows = new ArraySegment<char>(charArray).SplitToSegments('\r', '\n');
@@ -154,11 +154,19 @@ namespace Database.Essentials.Unity
             }
             else if (type == typeof(string))
             {
-                return str[1..^1].Replace("\\\"", "\"");
+                return str.Length > 1 ? str[1..^1].Replace("\\\"", "\"") : string.Empty;
             }
-            str = str.Replace("\\\\", "\\").Replace("\\\"", "\"");
-            str = str[(str[0] == '\"' ? 1 : 0)..(str[^1] == '\"' ? ^1 : str.Length)];
-            return JsonUtility.FromJson(str, type);
+
+            if (str.Length > 1)
+            {
+                str = str.Replace("\\\\", "\\").Replace("\\\"", "\"");
+                str = str[(str[0] == '\"' ? 1 : 0)..(str[^1] == '\"' ? ^1 : str.Length)];
+                return JsonUtility.FromJson(str, type);
+            }
+            else
+            {
+                return JsonUtility.FromJson("", type);
+            }
         }
     }
 }
