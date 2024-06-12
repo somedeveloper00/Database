@@ -26,7 +26,7 @@ namespace Database.Core.Implementations
         /// Read all data from the file at <see cref="FilePath"/>
         /// </summary>
         /// <returns></returns>
-        DatabaseElement<T>[] ReadAllFromExistingFisle();
+        DatabaseElement<T>[] ReadAllFromExistingFile();
 
         /// <summary>
         /// Write all <see cref="values"/> data to the file at <see cref="FilePath"/>
@@ -191,7 +191,7 @@ namespace Database.Core.Implementations
             if (LastReadDate != fileInfo.LastWriteTimeUtc)
             {
                 LastReadDate = DateTime.UtcNow;
-                LastReadData = ReadAllFromExistingFisle();
+                LastReadData = ReadAllFromExistingFile();
             }
             return true;
         }

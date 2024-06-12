@@ -17,7 +17,7 @@ namespace Database.Core.Implementations
 
         public readonly string FileExtension => new T2().FileExtension;
 
-        public readonly DatabaseElement<T1>[] ReadAllFromExistingFisle()
+        public readonly DatabaseElement<T1>[] ReadAllFromExistingFile()
         {
             var text = File.ReadAllText(FilePath);
             return new T2().Read<T1>(text);
